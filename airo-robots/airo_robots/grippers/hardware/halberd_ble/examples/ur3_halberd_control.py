@@ -21,8 +21,10 @@ from airo_robots.manipulators.hardware.ur_rtde import URrtde
 np.set_printoptions(precision=3, suppress=True)
 
 UR_IP_ADDRESS = "10.42.0.162"
-HALBERD_GRIPPER_NAME = "gripper-left-sensors"
-POSE_DIRECTORY = Path("docs/examples/Halberd/poses")
+HALBERD_GRIPPER_NAME = (
+    "gripper-left-sensors"  # Make sure this matches the name set in the code running on Halberd via gripper.begin()
+)
+POSE_DIRECTORY = Path("airo-robots/airo_robots/grippers/hardware/halberd_ble/examples/poses")
 POSE_FILENAMES = [
     "pose1_uptop_2.npy",
     "pose2_looking_down.npy",

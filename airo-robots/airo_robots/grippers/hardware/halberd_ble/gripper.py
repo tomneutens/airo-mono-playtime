@@ -29,104 +29,10 @@ OPEN_POSE = "open"
 CLOSED_POSE = "closed"
 
 
-class GenericHalberdGripper:
-    """Driver for any Halberd gripper, exotic kinematics included.
-
-    Talks in the gripper's own terms: axes (as declared in its descriptor) and named
-    poses. Use :class:`HalberdBLEGripper` instead when the gripper declares the
-    ``parallel`` profile and you want the standard airo-robots gripper interface.
-    """
-
-    def __init__(self, client: HalberdClient) -> None:
-        self._client = client
-
-    @staticmethod
-    def discover(timeout: float = 5.0) -> list[HalberdAdvertisement]:
-        """Scan for Halberd grippers in range (that are not connected to another client)."""
-        return _discover(timeout=timeout)
-
-    @classmethod
-    def connect(
-        cls, name: Optional[str] = None, address: Optional[str] = None, scan_timeout: float = 5.0
-    ) -> "GenericHalberdGripper":
-        """Connect to the gripper with the given user-assigned name (or address)."""
-        return cls(_connect(name=name, address=address, scan_timeout=scan_timeout))
-
-    @property
-    def client(self) -> HalberdClient:
-        return self._client
-
-    @property
-    def descriptor(self) -> protocol.GripperDescriptor:
-        return self._client.descriptor
-
-    @property
-    def axes(self) -> tuple[protocol.AxisDescriptor, ...]:
-        return self._client.descriptor.axes
-
-    @property
-    def poses(self) -> tuple[str, ...]:
-        return self._client.descriptor.poses
-
-    @property
-    def sensors(self) -> tuple[protocol.SensorDescriptor, ...]:
-        """The sensor channels declared by the gripper firmware."""
-        return self._client.descriptor.sensors
-
-    @property
-    def sensor_values(self) -> tuple[float, ...]:
-        """Latest sensor snapshot, in ascending sensor-id order (matches :attr:`sensors`)."""
-        return self._client.get_sensor_values()
-
-    def get_sensor(self, name: str) -> float:
-        """Latest value of the sensor with the given descriptor name (e.g. ``"force"``)."""
-        for index, sensor in enumerate(self._client.descriptor.sensors):
-            if sensor.name == name:
-                return self._client.get_sensor_values()[index]
-        declared = [sensor.name for sensor in self._client.descriptor.sensors]
-        raise KeyError(f"Gripper declares no sensor named {name!r} (available: {declared}).")
-
-    @property
-    def positions(self) -> tuple[float, ...]:
-        """Current position of every axis, in the units declared by the descriptor."""
-        return self._client.get_state().positions
-
-    def is_moving(self) -> bool:
-        return self._client.get_state().moving
-
-    def is_an_object_grasped(self) -> bool:
-        return self._client.get_state().grasped
-
-    def move_axes(self, targets: dict[int, float]) -> AwaitableAction:
-        """Move one or more axes to absolute targets; returns when the firmware reports DONE."""
-        seq = self._client.move_axes(targets)
-        return AwaitableAction(lambda: self._client.is_command_terminal(seq), default_timeout=DEFAULT_MOVE_TIMEOUT)
-
-    def move_pose(self, pose_name: str) -> AwaitableAction:
-        """Move to a firmware-declared named pose (e.g. ``"open"``, ``"pinch"``)."""
-        seq = self._client.move_pose(pose_name)
-        return AwaitableAction(lambda: self._client.is_command_terminal(seq), default_timeout=DEFAULT_MOVE_TIMEOUT)
-
-    def set_speed(self, axis_id: int, speed: float) -> None:
-        self._client.set_speed(axis_id, speed)
-
-    def set_effort(self, axis_id: int, effort: float) -> None:
-        self._client.set_effort(axis_id, effort)
-
-    def stop(self) -> None:
-        """Preempt any in-flight motion."""
-        self._client.stop()
-
-    def identify(self) -> None:
-        """Blink the gripper's LED to find it physically."""
-        self._client.identify()
-
-    def disconnect(self) -> None:
-        self._client.disconnect()
-
-
 class HalberdBLEGripper(ParallelPositionGripper):
     """A parallel gripper running on a Halberd board, controlled over BLE.
+    For more exotic grippers, use :class:`GenericHalberdGripper`
+    instead (see GenericHalberdGripper class below).
 
     The gripper firmware (HalberdGripper Arduino library) declares one axis: the finger
     opening in meters. ``open()``/``close()`` use the firmware's named poses, so custom
@@ -274,3 +180,99 @@ if __name__ == "__main__":
         manually_test_gripper_implementation(gripper, gripper.gripper_specs)
 
     test_halberd()
+
+
+class GenericHalberdGripper:
+    """Driver for any Halberd gripper, exotic kinematics included.
+
+    Talks in the gripper's own terms: axes (as declared in its descriptor) and named
+    poses. Use :class:`HalberdBLEGripper` instead when the gripper declares the
+    ``parallel`` profile and you want the standard airo-robots gripper interface.
+    """
+
+    def __init__(self, client: HalberdClient) -> None:
+        self._client = client
+
+    @staticmethod
+    def discover(timeout: float = 5.0) -> list[HalberdAdvertisement]:
+        """Scan for Halberd grippers in range (that are not connected to another client)."""
+        return _discover(timeout=timeout)
+
+    @classmethod
+    def connect(
+        cls, name: Optional[str] = None, address: Optional[str] = None, scan_timeout: float = 5.0
+    ) -> "GenericHalberdGripper":
+        """Connect to the gripper with the given user-assigned name (or address)."""
+        return cls(_connect(name=name, address=address, scan_timeout=scan_timeout))
+
+    @property
+    def client(self) -> HalberdClient:
+        return self._client
+
+    @property
+    def descriptor(self) -> protocol.GripperDescriptor:
+        return self._client.descriptor
+
+    @property
+    def axes(self) -> tuple[protocol.AxisDescriptor, ...]:
+        return self._client.descriptor.axes
+
+    @property
+    def poses(self) -> tuple[str, ...]:
+        return self._client.descriptor.poses
+
+    @property
+    def sensors(self) -> tuple[protocol.SensorDescriptor, ...]:
+        """The sensor channels declared by the gripper firmware."""
+        return self._client.descriptor.sensors
+
+    @property
+    def sensor_values(self) -> tuple[float, ...]:
+        """Latest sensor snapshot, in ascending sensor-id order (matches :attr:`sensors`)."""
+        return self._client.get_sensor_values()
+
+    def get_sensor(self, name: str) -> float:
+        """Latest value of the sensor with the given descriptor name (e.g. ``"force"``)."""
+        for index, sensor in enumerate(self._client.descriptor.sensors):
+            if sensor.name == name:
+                return self._client.get_sensor_values()[index]
+        declared = [sensor.name for sensor in self._client.descriptor.sensors]
+        raise KeyError(f"Gripper declares no sensor named {name!r} (available: {declared}).")
+
+    @property
+    def positions(self) -> tuple[float, ...]:
+        """Current position of every axis, in the units declared by the descriptor."""
+        return self._client.get_state().positions
+
+    def is_moving(self) -> bool:
+        return self._client.get_state().moving
+
+    def is_an_object_grasped(self) -> bool:
+        return self._client.get_state().grasped
+
+    def move_axes(self, targets: dict[int, float]) -> AwaitableAction:
+        """Move one or more axes to absolute targets; returns when the firmware reports DONE."""
+        seq = self._client.move_axes(targets)
+        return AwaitableAction(lambda: self._client.is_command_terminal(seq), default_timeout=DEFAULT_MOVE_TIMEOUT)
+
+    def move_pose(self, pose_name: str) -> AwaitableAction:
+        """Move to a firmware-declared named pose (e.g. ``"open"``, ``"pinch"``)."""
+        seq = self._client.move_pose(pose_name)
+        return AwaitableAction(lambda: self._client.is_command_terminal(seq), default_timeout=DEFAULT_MOVE_TIMEOUT)
+
+    def set_speed(self, axis_id: int, speed: float) -> None:
+        self._client.set_speed(axis_id, speed)
+
+    def set_effort(self, axis_id: int, effort: float) -> None:
+        self._client.set_effort(axis_id, effort)
+
+    def stop(self) -> None:
+        """Preempt any in-flight motion."""
+        self._client.stop()
+
+    def identify(self) -> None:
+        """Blink the gripper's LED to find it physically."""
+        self._client.identify()
+
+    def disconnect(self) -> None:
+        self._client.disconnect()

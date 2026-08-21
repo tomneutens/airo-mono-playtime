@@ -2,7 +2,7 @@
 
 Run this script once per pose you want to record. Each run saves one file.
 
-    python docs/examples/Halberd/capture_pose.py
+    python airo-robots/airo_robots/grippers/hardware/halberd_ble/examples/capture_pose.py
 """
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from airo_robots.manipulators.hardware.ur_rtde import URrtde
 np.set_printoptions(precision=3, suppress=True)
 
 UR_IP_ADDRESS = "10.42.0.162"
-POSES_DIR = Path("docs/examples/Halberd/poses")
+POSES_DIR = Path("airo-robots/airo_robots/grippers/hardware/halberd_ble/examples/poses")
 
 if __name__ == "__main__":
     POSES_DIR.mkdir(parents=True, exist_ok=True)
